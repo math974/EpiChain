@@ -1,3 +1,20 @@
+# Foundry build artifacts
+contracts/out/
+contracts/cache/
+contracts/.env
+
+# Indexer
+indexer/node_modules/
+indexer/*.db
+indexer/*.db-shm
+indexer/*.db-wal
+indexer/.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
 # Logs
 logs
 *.log
