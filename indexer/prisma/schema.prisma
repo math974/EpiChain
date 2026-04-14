@@ -1,0 +1,34 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// ERC-4337 EntryPoint `UserOperationEvent` (indexed from Ethereum Mainnet).
+model UserOperationEvent {
+  id             String   @id @default(cuid())
+  userOpHash     String
+  sender         String
+  paymaster      String
+  nonce          String
+  success        Boolean
+  actualGasCost  String
+  actualGasUsed  String
+  blockNumber    BigInt
+  blockHash      String
+  txHash         String
+  logIndex       Int
+  blockTimestamp DateTime?
+
+  @@unique([txHash, logIndex])
+  @@index([blockNumber])
+  @@index([sender])
+}
