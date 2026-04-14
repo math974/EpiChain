@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-epichain} -d ${POSTGRES_DB:-epichain}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  indexer:
+    build:
+      context: ./indexer
+      dockerfile: Dockerfile
+      target: development
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      # Host must be `postgres` (service name), not `localhost`, inside Docker.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-epichain}:${POSTGRES_PASSWORD:-epichain}@postgres:5432/${POSTGRES_DB:-epichain}?schema=public
+      MAINNET_RPC_URL: ${MAINNET_RPC_URL}
+      ENTRY_POINT_ADDRESS: ${ENTRY_POINT_ADDRESS}
+      START_BLOCK: ${START_BLOCK}
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./indexer:/app
+      - indexer_node_modules:/app/node_modules
+    ports:
+      - "${INDEXER_PORT}:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    environment:
+      VITE_WALLETCONNECT_PROJECT_ID: ${VITE_WALLETCONNECT_PROJECT_ID:-}
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      - indexer
+
+  prisma-studio:
+    image: node:22-alpine
+    working_dir: /usr/src/app/indexer
+    container_name: epichain-prisma-studio
+    restart: unless-stopped
+    volumes:
+      - .:/usr/src/app
+    environment:
+      # Same DB as Postgres service (host `postgres` on the compose network)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-epichain}:${POSTGRES_PASSWORD:-epichain}@postgres:5432/${POSTGRES_DB:-epichain}?schema=public
+    command:
+      [
+        "npx",
+        "--yes",
+        "prisma",
+        "studio",
+        "--port",
+        "5555",
+        "--browser",
+        "none",
+      ]
+    ports:
+      - "${PRISMA_STUDIO_PORT:-5555}:5555"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  frontend_node_modules:
+  indexer_node_modules:
