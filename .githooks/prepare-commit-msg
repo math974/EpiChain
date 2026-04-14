@@ -1,0 +1,10 @@
+#!/bin/sh
+# Strips Cursor attribution lines from COMMIT_EDITMSG (Co-authored-by, Made-with, known email).
+MSG="$1"
+[ -n "$MSG" ] && [ -f "$MSG" ] || exit 0
+TMP=$(mktemp)
+sed -e '/cursoragent@cursor\.com/d' \
+    -e '/^Co-authored-by:.*[Cc]ursor/d' \
+    -e '/^Made-with:[[:space:]]*Cursor/d' \
+    "$MSG" > "$TMP"
+mv "$TMP" "$MSG"
