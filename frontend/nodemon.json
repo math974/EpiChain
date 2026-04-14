@@ -1,0 +1,6 @@
+{
+  "watch": ["vite.config.ts", "index.html", "tsconfig.json", "tsconfig.app.json", "package.json"],
+  "ignore": ["src/**", "dist/**", "node_modules/**"],
+  "ext": "ts,tsx,json,html",
+  "exec": "vite --host 0.0.0.0 --port 5173"
+}
