@@ -49,6 +49,10 @@ services:
       target: development
     environment:
       VITE_WALLETCONNECT_PROJECT_ID: ${VITE_WALLETCONNECT_PROJECT_ID:-}
+      VITE_FACTORY_ADDRESS: ${VITE_FACTORY_ADDRESS:-}
+      VITE_COUNTER_ADDRESS: ${VITE_COUNTER_ADDRESS:-}
+      VITE_SEPOLIA_RPC_URL: ${VITE_SEPOLIA_RPC_URL:-}
+      VITE_BUNDLER_URL: ${VITE_BUNDLER_URL:-}
       CHOKIDAR_USEPOLLING: "true"
     volumes:
       - ./frontend:/app
