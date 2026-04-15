@@ -22,4 +22,89 @@
 
 .app-main {
   flex: 1;
+  display: grid;
+  gap: 1rem;
+}
+
+.card {
+  border: 1px solid #2f3342;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #111522;
+}
+
+.card h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.muted {
+  margin: 0 0 1rem 0;
+  color: #a4a9ba;
+}
+
+.input {
+  width: 100%;
+  max-width: 220px;
+  margin-top: 0.25rem;
+  margin-bottom: 1rem;
+  background: #0b0e17;
+  border: 1px solid #2f3342;
+  color: #e8ebf3;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.82rem;
+  color: #98a0b6;
+  margin-bottom: 0.25rem;
+}
+
+.result {
+  margin-top: 0.75rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.btn {
+  border: 1px solid #3d68ff;
+  background: #2f54eb;
+  color: #f5f7ff;
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  border-color: #2f3342;
+  background: #1a1e2e;
+}
+
+code {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  background: #0b0e17;
+  border: 1px solid #2f3342;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
 }

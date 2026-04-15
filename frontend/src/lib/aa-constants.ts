@@ -1,0 +1,4 @@
+export const ENTRY_POINT_V07 = "0x0000000071727De22E5E9d8BAf0edAc6f37da032";
+
+export const AUTH_MODE_OWNER = 0;
+export const AUTH_MODE_SESSION = 1;
