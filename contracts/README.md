@@ -1,66 +1,79 @@
-## Foundry
+# Contracts (ERC-4337)
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This folder contains the smart contracts required by the exam:
 
-Foundry consists of:
+- `SmartAccount.sol` (ERC-4337 `IAccount`-compatible)
+- `SmartAccountFactory.sol` (CREATE2 deterministic deployment)
+- `Counter.sol` (demo target contract)
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Requirements
 
-## Documentation
+- Foundry installed (`forge`, `cast`)
+- A Sepolia RPC URL (e.g. Alchemy)
+- A funded deployer key for Sepolia
 
-https://book.getfoundry.sh/
+## Setup
 
-## Usage
-
-### Build
-
-```shell
-$ forge build
+```bash
+cp .env.example .env
+# fill values (SEPOLIA_RPC_URL, PRIVATE_KEY, etc.)
 ```
 
-### Test
+## Build and test
 
-```shell
-$ forge test
+```bash
+forge build
+forge test -vv
 ```
 
-### Format
+## Deploy core contracts (Factory + Counter)
 
-```shell
-$ forge fmt
+```bash
+source .env
+forge script script/DeployCore.s.sol:DeployCoreScript \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --private-key "$PRIVATE_KEY" \
+  --broadcast
 ```
 
-### Gas Snapshots
+Copy printed addresses to `.env`:
 
-```shell
-$ forge snapshot
+- `FACTORY_ADDRESS=...`
+- `COUNTER_ADDRESS=...`
+
+## Create a deterministic SmartAccount
+
+```bash
+source .env
+forge script script/CreateSmartAccount.s.sol:CreateSmartAccountScript \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --private-key "$PRIVATE_KEY" \
+  --broadcast
 ```
 
-### Anvil
+The script prints:
 
-```shell
-$ anvil
+- predicted address (`getAddress`)
+- deployed address (`createAccount`)
+
+## Manage session keys
+
+### Add session key (restricted to `increment()`)
+
+```bash
+source .env
+forge script script/ManageSessionKey.s.sol:AddSessionKeyScript \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --private-key "$PRIVATE_KEY" \
+  --broadcast
 ```
 
-### Deploy
+### Revoke session key
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+```bash
+source .env
+forge script script/ManageSessionKey.s.sol:RevokeSessionKeyScript \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --private-key "$PRIVATE_KEY" \
+  --broadcast
 ```

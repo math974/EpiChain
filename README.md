@@ -85,6 +85,106 @@ Used when you run `cd indexer && npm run dev` **without** Docker. Copy from `ind
 
 ---
 
+## Beginner Setup (Copy/Paste)
+
+If you are new to the project, follow this exact order.
+
+### 1) Root `.env` for Docker
+
+```bash
+cp .env.docker.example .env
+```
+
+Edit `.env` and set at least:
+
+```env
+MAINNET_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
+VITE_WALLETCONNECT_PROJECT_ID=YOUR_WALLETCONNECT_PROJECT_ID
+```
+
+Then start the stack:
+
+```bash
+docker compose up --build
+```
+
+### 2) Contracts `.env` for Sepolia deploy
+
+```bash
+cd contracts
+cp .env.example .env
+```
+
+Edit `contracts/.env`:
+
+```env
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+PRIVATE_KEY=0xYOUR_DEPLOYER_PRIVATE_KEY
+ENTRY_POINT_V07=0x0000000071727De22E5E9d8BAf0edAc6f37da032
+ETHERSCAN_API_KEY=YOUR_ETHERSCAN_KEY
+SMART_ACCOUNT_OWNER=0xYOUR_METAMASK_ADDRESS
+SMART_ACCOUNT_SALT=1
+```
+
+Deploy:
+
+```bash
+source .env
+forge build
+forge test -vv
+forge script script/DeployCore.s.sol:DeployCoreScript --rpc-url "$SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" --broadcast
+```
+
+After deploy, put the printed addresses into:
+
+- `FACTORY_ADDRESS`
+- `COUNTER_ADDRESS`
+
+Then create the smart account:
+
+```bash
+forge script script/CreateSmartAccount.s.sol:CreateSmartAccountScript --rpc-url "$SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" --broadcast
+```
+
+Put the deployed account in:
+
+- `SMART_ACCOUNT_ADDRESS`
+
+### 3) Frontend `.env` (local frontend)
+
+```bash
+cd ../frontend
+cp .env.example .env
+```
+
+Edit `frontend/.env`:
+
+```env
+VITE_WALLETCONNECT_PROJECT_ID=YOUR_WALLETCONNECT_PROJECT_ID
+VITE_FACTORY_ADDRESS=0xYOUR_FACTORY_ADDRESS
+VITE_COUNTER_ADDRESS=0xYOUR_COUNTER_ADDRESS
+# optional
+# VITE_SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+```
+
+Run frontend:
+
+```bash
+npm install
+npm run dev
+```
+
+### 4) Verify contracts on Sepolia Etherscan
+
+```bash
+cd ../contracts
+source .env
+forge verify-contract --chain-id 11155111 --etherscan-api-key "$ETHERSCAN_API_KEY" "$COUNTER_ADDRESS" src/Counter.sol:Counter
+forge verify-contract --chain-id 11155111 --etherscan-api-key "$ETHERSCAN_API_KEY" --constructor-args $(cast abi-encode "constructor(address)" "$ENTRY_POINT_V07") "$FACTORY_ADDRESS" src/SmartAccountFactory.sol:SmartAccountFactory
+```
+
+---
+
 ## Quick start with Docker Compose
 
 From the **repository root**:
@@ -135,8 +235,18 @@ docker compose down -v
 
 ```bash
 cd contracts
+cp .env.example .env
+# fill SEPOLIA_RPC_URL, PRIVATE_KEY, ENTRY_POINT_V07
 forge build
 forge test
+```
+
+Core deploy and deterministic account creation:
+
+```bash
+source .env
+forge script script/DeployCore.s.sol:DeployCoreScript --rpc-url "$SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" --broadcast
+forge script script/CreateSmartAccount.s.sol:CreateSmartAccountScript --rpc-url "$SEPOLIA_RPC_URL" --private-key "$PRIVATE_KEY" --broadcast
 ```
 
 ### Indexer
@@ -164,6 +274,7 @@ npm run dev
 | Script | Purpose |
 |--------|---------|
 | `scripts/clean_rebuild.sh` | Stops Compose project, removes `epichain*` containers/images (and optionally volumes with `--full`), then `docker compose build --no-cache` and `up --build`. Run from repo root. Options: `--prod` (`.env.prod`), `--full`, `--clean-only`, `--help`. |
+| `scripts/commit-all.sh` | Creates multiple conventional commits and enables `.githooks` so Cursor attribution trailers are stripped. |
 
 Example:
 
