@@ -25,7 +25,7 @@ Full-stack project for the **Blockchain Developer — Final Exam**: ERC-4337 sma
 | Path | Role |
 |------|------|
 | `contracts/` | Solidity (**Foundry**): smart account, factory, demo contract, deployment scripts |
-| `indexer/` | **Node.js** + **Express** + **Prisma** + **PostgreSQL**: index `UserOperationEvent` from Mainnet, HTTP API |
+| `indexer/` | **Node.js** + **Express** + **Prisma** + **PostgreSQL** + **WebSocket**: indexes all 3 ERC-4337 events from Mainnet, REST API + live WS feed |
 | `frontend/` | **React** + **Vite** + **RainbowKit** + **wagmi** + **viem** |
 | `scripts/` | Helper scripts (e.g. clean rebuild for Docker) |
 
@@ -257,6 +257,18 @@ forge script script/CreateSmartAccount.s.sol:CreateSmartAccountScript --rpc-url 
 
 Health check: `GET http://localhost:4000/health`
 
+### Indexer API endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health` | Health check |
+| `GET /api/events?limit=50&offset=0&sender=0x...` | Paginated UserOperationEvent list (newest first) |
+| `GET /api/events/:userOpHash` | Single event by userOpHash |
+| `GET /api/deploys?limit=50&offset=0` | AccountDeployed events |
+| `GET /api/reverts?limit=50&offset=0` | UserOperationRevertReason events |
+| `GET /api/stats` | Aggregate stats (total ops, success rate, sponsorship rate, etc.) |
+| `ws://localhost:4000/ws` | WebSocket live feed — sends `initial` on connect, `update` on new events |
+
 ### Frontend
 
 ```bash
@@ -274,7 +286,7 @@ npm run dev
 | Script | Purpose |
 |--------|---------|
 | `scripts/clean_rebuild.sh` | Stops Compose project, removes `epichain*` containers/images (and optionally volumes with `--full`), then `docker compose build --no-cache` and `up --build`. Run from repo root. Options: `--prod` (`.env.prod`), `--full`, `--clean-only`, `--help`. |
-| `scripts/commit-all.sh` | Creates multiple conventional commits and enables `.githooks` so Cursor attribution trailers are stripped. |
+| `scripts/deploy-sepolia-core.sh` | Automated deploy of Factory + Counter to Sepolia: builds, tests, deploys, updates `.env` files, and verifies on Etherscan. Options: `--skip-tests`, `--skip-verify`, `--skip-balance-check`. |
 
 Example:
 
@@ -333,7 +345,7 @@ chmod +x .githooks/prepare-commit-msg
 ## Tech stack
 
 - **Smart contracts:** Solidity + **Foundry**
-- **Indexer:** Node.js, TypeScript, **Express**, **viem**, **Prisma**, **PostgreSQL**
+- **Indexer:** Node.js, TypeScript, **Express**, **viem**, **Prisma**, **PostgreSQL**, **ws** (WebSocket)
 - **Frontend:** **React**, **Vite**, **RainbowKit**, **wagmi**, **viem**, TanStack Query
 - **Infra:** Docker Compose, optional **Alchemy** RPCs
 
