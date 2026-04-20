@@ -1,22 +1,24 @@
 # EpiChain
 
-Full-stack project for the **Blockchain Developer — Final Exam**: ERC-4337 smart accounts (session keys), an **EntryPoint v0.7** event indexer on **Ethereum Mainnet**, and a shared **React** frontend.
+Full-stack project for the **Blockchain Developer — Final Exam**: ERC-4337 smart accounts with session keys, an **EntryPoint v0.7** event indexer on **Ethereum Mainnet**, and a shared **React** frontend.
 
 ---
 
 ## Contents
 
 1. [Repository layout](#repository-layout)
-2. [Networks (Sepolia vs Mainnet)](#networks-sepolia-vs-mainnet)
-3. [Prerequisites](#prerequisites)
-4. [Environment variables](#environment-variables)
-5. [Quick start with Docker Compose](#quick-start-with-docker-compose) (recommended)
-6. [Local development without Docker](#local-development-without-docker)
-7. [Scripts](#scripts)
-8. [Production Docker images](#production-docker-images)
-9. [Troubleshooting](#troubleshooting)
-10. [Tech stack](#tech-stack)
-11. [Exam submission checklist](#exam-submission-checklist)
+2. [Part 1 — Smart Contracts (How it works)](#part-1--smart-contracts)
+3. [Part 2 — EVM Indexer (How it works)](#part-2--evm-indexer)
+4. [Networks](#networks)
+5. [Prerequisites](#prerequisites)
+6. [Environment variables](#environment-variables)
+7. [Quick start with Docker Compose](#quick-start-with-docker-compose) (recommended)
+8. [Local development without Docker](#local-development-without-docker)
+9. [Scripts](#scripts)
+10. [Production Docker images](#production-docker-images)
+11. [Troubleshooting](#troubleshooting)
+12. [Tech stack](#tech-stack)
+13. [Exam submission checklist](#exam-submission-checklist)
 
 ---
 
@@ -24,22 +26,98 @@ Full-stack project for the **Blockchain Developer — Final Exam**: ERC-4337 sma
 
 | Path | Role |
 |------|------|
-| `contracts/` | Solidity (**Foundry**): smart account, factory, demo contract, deployment scripts |
-| `indexer/` | **Node.js** + **Express** + **Prisma** + **PostgreSQL** + **WebSocket**: indexes all 3 ERC-4337 events from Mainnet, REST API + live WS feed |
-| `frontend/` | **React** + **Vite** + **RainbowKit** + **wagmi** + **viem** |
-| `scripts/` | Helper scripts (e.g. clean rebuild for Docker) |
+| `contracts/` | Solidity (**Foundry**): SmartAccount, SmartAccountFactory, Counter, deploy scripts |
+| `indexer/` | **Node.js** + **Express** + **Prisma** + **PostgreSQL** + **WebSocket**: ERC-4337 event indexer |
+| `frontend/` | **React** + **Vite** + **RainbowKit** + **wagmi** + **viem**: shared UI for both pillars |
+| `scripts/` | Deployment and Docker helper scripts |
 
 ---
 
-## Networks (Sepolia vs Mainnet)
+## Part 1 — Smart Contracts
 
-| Part of the project | Network | Notes |
-|---------------------|---------|--------|
-| Smart contracts, AA demo, bundler | **Sepolia** | Deploy + verify on a testnet explorer |
-| Indexer (EntryPoint logs) | **Ethereum Mainnet** | Required by the exam — use a Mainnet RPC (e.g. Alchemy) |
+### What it does
 
-**EntryPoint v0.7 (same address on supported chains):**  
-`0x0000000071727De22E5E9d8BAf0edAc6f37da032`
+An ERC-4337 compliant smart account system deployed on **Sepolia**, with two auth modes (owner ECDSA + session keys) and a demo Counter contract.
+
+### How it works (implementation)
+
+**SmartAccount.sol** implements `IAccount.validateUserOp()`. The signature field encodes an `authMode` byte:
+- **Mode 0 (owner):** recovers the signer via `ecrecover(userOpHash, sig)` and checks it matches the stored `owner`.
+- **Mode 1 (session key):** same `ecrecover`, but checks the recovered address is a registered session key, that the target function selector is in the key's allowlist, and packs the key's `expiry` into `validUntil` (the EntryPoint enforces the time check, since `block.timestamp` is a banned opcode in ERC-4337 validation).
+
+Session keys are managed by the owner via `addSessionKey(address, expiry, selectors[])` and `revokeSessionKey(address)`. Each key has a per-selector allowlist and an expiry timestamp. Events `SessionKeyAdded` and `SessionKeyRevoked` are emitted for auditability.
+
+**SmartAccountFactory.sol** uses `CREATE2` for deterministic addresses: `getAddress(owner, salt)` returns the counterfactual address before deployment. `createAccount(owner, salt)` deploys if not already deployed.
+
+**Counter.sol** is the demo target: `increment()` and `getCount(address)` with a per-caller mapping.
+
+**Frontend (Smart Account tab):** builds UserOperations, estimates gas via the bundler's `eth_estimateUserOperationGas`, gets the `userOpHash` from the EntryPoint, signs it (MetaMask for owner, in-app private key for session), submits via `eth_sendUserOperation`, and polls for the receipt. An adaptive retry loop adjusts `verificationGasLimit` automatically based on bundler feedback (`AA26` → increase, efficiency error → recalculate from actual gas ratio).
+
+### Key files
+
+| File | Role |
+|------|------|
+| `contracts/src/SmartAccount.sol` | IAccount implementation, session key storage, execute() |
+| `contracts/src/SmartAccountFactory.sol` | CREATE2 factory |
+| `contracts/src/Counter.sol` | Demo target (per-caller counter) |
+| `frontend/src/App.tsx` | Owner flow, session key flow, UserOp building + bundler interaction |
+| `frontend/src/lib/aa-userop.ts` | UserOp hash computation, signature encoding |
+
+---
+
+## Part 2 — EVM Indexer
+
+### What it does
+
+A backend service that indexes **all ERC-4337 activity on Ethereum Mainnet** by reading events from the EntryPoint v0.7 contract, stores them in PostgreSQL, and serves them via REST + WebSocket to a live frontend feed.
+
+### How it works (implementation)
+
+The indexer uses **viem** to call `eth_getLogs` on the EntryPoint address. It indexes 3 event types:
+- `UserOperationEvent` — every UserOp execution (sender, paymaster, gas cost, success/fail)
+- `AccountDeployed` — new smart account deployments
+- `UserOperationRevertReason` — reverted UserOps with the revert reason
+
+**Backfill:** on startup, reads the last indexed block from `IndexerState` (PostgreSQL singleton row) and catches up to the chain head in batches of `BATCH_SIZE` blocks (default 10, configurable — Alchemy free tier limits `eth_getLogs` to 10 blocks per request).
+
+**Live polling:** after backfill, polls every ~12 seconds for new blocks. Each new batch of logs is parsed, enriched with block timestamps, and bulk-inserted via Prisma `createMany` with `skipDuplicates` (unique constraint on `txHash + logIndex`).
+
+**Reorg handling:** before advancing, the indexer compares the stored `blockHash` for the last indexed block against the chain. If there's a mismatch (reorg), it purges all data from that block onward and re-indexes.
+
+**RPC resilience:** all RPC calls are wrapped in exponential backoff retries (up to 5 attempts, 2x delay, doubled again for rate-limit errors).
+
+**API:** Express REST endpoints for paginated event queries and aggregate stats. A WebSocket server (`/ws`) pushes new events to all connected clients whenever the indexer persists a new batch.
+
+**Frontend (Indexer Feed tab):** connects via WebSocket for real-time updates, falls back to REST polling every 15s if WS is disconnected. Displays an events table (status, hash, sender, paymaster, gas cost, block, Etherscan link) and a stats panel (total UserOps, success rate, paymaster sponsorship rate).
+
+### Why these choices
+
+- **Alchemy (RPC):** reliable free tier, supports `eth_getLogs`.
+- **Polling over WebSocket subscriptions:** more resilient to disconnects, works with all providers, no missed events on reconnect.
+- **PostgreSQL + Prisma:** ACID for reorg safety, indexed queries, type-safe ORM with migrations.
+- **REST + WebSocket:** REST for initial load + pagination + filters, WebSocket for real-time push.
+
+### Key files
+
+| File | Role |
+|------|------|
+| `indexer/src/indexer.ts` | Backfill + live polling loop, reorg detection, RPC retry logic |
+| `indexer/src/api.ts` | REST endpoints (`/api/events`, `/api/stats`, etc.) |
+| `indexer/src/ws.ts` | WebSocket server, broadcasts new events to clients |
+| `indexer/src/abi.ts` | EntryPoint v0.7 event ABI (3 events) |
+| `indexer/prisma/schema.prisma` | Database models (UserOperationEvent, AccountDeployed, etc.) |
+| `frontend/src/IndexerFeed.tsx` | Live feed UI, stats panel, WebSocket client |
+
+---
+
+## Networks
+
+| Part | Network | Why |
+|------|---------|-----|
+| Smart contracts + AA demo | **Sepolia** | Free testnet, no real ETH needed |
+| Indexer | **Ethereum Mainnet** | Required by exam — real ERC-4337 traffic to index |
+
+**EntryPoint v0.7:** `0x0000000071727De22E5E9d8BAf0edAc6f37da032`
 
 ---
 
@@ -349,7 +427,7 @@ chmod +x .githooks/prepare-commit-msg
 - **Frontend:** **React**, **Vite**, **RainbowKit**, **wagmi**, **viem**, TanStack Query
 - **Infra:** Docker Compose, optional **Alchemy** RPCs
 
-PostgreSQL + Prisma: relational storage for events, migrations, and clear defense trade-offs in the oral exam.
+See the "How it works" sections above for architectural justifications.
 
 ---
 
