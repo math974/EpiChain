@@ -7,10 +7,8 @@ if [ -z "$DATABASE_URL" ]; then
   exit 1
 fi
 
-if [ ! -f node_modules/.bin/tsx ]; then
-  echo "Installing npm dependencies..."
-  npm ci --ignore-scripts
-fi
+echo "Installing npm dependencies..."
+npm install --ignore-scripts
 
 if [ ! -d src/generated/prisma ]; then
   echo "Generating Prisma client..."
