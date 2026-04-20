@@ -14,7 +14,7 @@ import { type EventCallback } from "./types.js";
 const ENTRY_POINT = (process.env.ENTRY_POINT_ADDRESS ??
   "0x0000000071727De22E5E9d8BAf0edAc6f37da032") as `0x${string}`;
 
-const BATCH_SIZE = 2000n;
+const BATCH_SIZE = BigInt(process.env.BATCH_SIZE ?? "10");
 const POLL_INTERVAL_MS = 12_000;
 const MAX_RPC_RETRIES = 5;
 const RPC_RETRY_BASE_MS = 2_000;
