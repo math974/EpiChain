@@ -1,7 +1,9 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { encodeFunctionData, formatEther, isAddress } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { useMemo, useState } from "react";
+import { useMemo, useState, lazy, Suspense } from "react";
+
+const IndexerFeed = lazy(() => import("./IndexerFeed"));
 import {
   useAccount,
   useBalance,
@@ -80,7 +82,10 @@ async function bundlerRpc<T>(
   return data.result as T;
 }
 
+type Tab = "account" | "indexer";
+
 function App() {
+  const [activeTab, setActiveTab] = useState<Tab>("account");
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const { data: walletClient } = useWalletClient();
@@ -568,9 +573,29 @@ function App() {
     <div className="app-shell">
       <header className="app-header">
         <h1>EpiChain</h1>
+        <nav className="tab-nav">
+          <button
+            className={`tab-btn ${activeTab === "account" ? "active" : ""}`}
+            onClick={() => setActiveTab("account")}
+          >
+            Smart Account
+          </button>
+          <button
+            className={`tab-btn ${activeTab === "indexer" ? "active" : ""}`}
+            onClick={() => setActiveTab("indexer")}
+          >
+            Indexer Feed
+          </button>
+        </nav>
         <ConnectButton />
       </header>
       <main className="app-main">
+        {activeTab === "indexer" ? (
+          <Suspense fallback={<p>Loading indexer...</p>}>
+            <IndexerFeed />
+          </Suspense>
+        ) : (
+        <>
         <section className="card">
           <h2>Smart account preview</h2>
           <p className="muted">
@@ -862,6 +887,8 @@ function App() {
             </div>
           )}
         </section>
+        </>
+        )}
       </main>
     </div>
   );
