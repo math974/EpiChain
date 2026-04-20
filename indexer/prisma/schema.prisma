@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -14,7 +9,7 @@ datasource db {
 
 /// ERC-4337 EntryPoint `UserOperationEvent` (indexed from Ethereum Mainnet).
 model UserOperationEvent {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   userOpHash     String
   sender         String
   paymaster      String
@@ -31,4 +26,46 @@ model UserOperationEvent {
   @@unique([txHash, logIndex])
   @@index([blockNumber])
   @@index([sender])
+}
+
+/// ERC-4337 EntryPoint `AccountDeployed` event.
+model AccountDeployed {
+  id          String    @id @default(cuid())
+  userOpHash  String
+  sender      String
+  factory     String
+  paymaster   String
+  blockNumber BigInt
+  blockHash   String
+  txHash      String
+  logIndex    Int
+  blockTimestamp DateTime?
+
+  @@unique([txHash, logIndex])
+  @@index([blockNumber])
+  @@index([sender])
+}
+
+/// ERC-4337 EntryPoint `UserOperationRevertReason` event.
+model UserOperationRevertReason {
+  id           String    @id @default(cuid())
+  userOpHash   String
+  sender       String
+  nonce        String
+  revertReason String
+  blockNumber  BigInt
+  blockHash    String
+  txHash       String
+  logIndex     Int
+  blockTimestamp DateTime?
+
+  @@unique([txHash, logIndex])
+  @@index([blockNumber])
+  @@index([sender])
+}
+
+/// Persistent cursor so the indexer can resume from where it stopped.
+model IndexerState {
+  id               String @id @default("singleton")
+  lastIndexedBlock BigInt
 }
