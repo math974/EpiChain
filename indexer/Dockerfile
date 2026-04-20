@@ -12,7 +12,7 @@ COPY prisma ./prisma
 COPY src ./src
 COPY .env.build ./
 
-RUN npm ci --ignore-scripts \
+RUN npm install --ignore-scripts \
   && set -a && . ./.env.build && set +a \
   && npx prisma generate \
   && rm -f .env.build
