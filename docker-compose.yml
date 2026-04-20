@@ -53,6 +53,8 @@ services:
       VITE_COUNTER_ADDRESS: ${VITE_COUNTER_ADDRESS:-}
       VITE_SEPOLIA_RPC_URL: ${VITE_SEPOLIA_RPC_URL:-}
       VITE_BUNDLER_URL: ${VITE_BUNDLER_URL:-}
+      VITE_INDEXER_URL: http://localhost:${INDEXER_PORT:-4000}
+      VITE_INDEXER_WS_URL: ws://localhost:${INDEXER_PORT:-4000}/ws
       CHOKIDAR_USEPOLLING: "true"
     volumes:
       - ./frontend:/app
