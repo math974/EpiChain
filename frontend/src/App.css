@@ -297,3 +297,262 @@ code {
   color: #ff4d4f;
   margin: 0.5rem 0;
 }
+
+/* ===== Smart Account UX improvements ===== */
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.card-title-row h2 {
+  margin: 0;
+}
+
+.badge-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+}
+
+.badge-ok {
+  background: rgba(82, 196, 26, 0.15);
+  color: #52c41a;
+}
+
+.badge-warn {
+  background: rgba(250, 173, 20, 0.15);
+  color: #faad14;
+}
+
+/* Two-column form layout */
+.form-two-col {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+  .form-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Input + button side by side */
+.input-with-btn {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin-top: 0.25rem;
+}
+
+/* Override global 220px max-width for address inputs */
+.input-full {
+  max-width: 100% !important;
+  flex: 1;
+  min-width: 0;
+}
+
+.input-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #98a0b6;
+  margin-top: 0.3rem;
+}
+
+/* Predicted address block */
+.predicted-block {
+  background: #0b0e17;
+  border: 1px solid #2f3342;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.predicted-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.address-code {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Stats mini grid */
+.account-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 480px) {
+  .account-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.account-stat {
+  background: #0b0e17;
+  border: 1px solid #2f3342;
+  border-radius: 10px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.account-stat-label {
+  display: block;
+  font-size: 0.72rem;
+  color: #98a0b6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+.account-stat-value {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #e8ebf3;
+  font-variant-numeric: tabular-nums;
+}
+
+.account-stat-mono {
+  font-size: 0.85rem !important;
+  font-family: monospace;
+}
+
+/* Last tx result */
+.tx-result {
+  background: #0b0e17;
+  border: 1px solid #2f3342;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.tx-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.tx-row code {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+/* Bundler status / error */
+.bundler-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #a4a9ba;
+}
+
+.bundler-error {
+  margin-top: 0.75rem;
+  background: rgba(255, 77, 79, 0.07);
+  border: 1px solid rgba(255, 77, 79, 0.25);
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.82rem;
+  color: #ff4d4f;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* Session key status grid */
+.session-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+  padding: 0.75rem 0.85rem;
+  background: #0b0e17;
+  border: 1px solid #2f3342;
+  border-radius: 10px;
+}
+
+.session-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.session-status-item .label {
+  margin: 0;
+}
+
+.text-ok   { color: #52c41a; font-weight: 600; }
+.text-muted { color: #a4a9ba; }
+
+/* Card divider */
+.card-divider {
+  border: none;
+  border-top: 1px solid #2f3342;
+  margin: 1.25rem 0;
+}
+
+.subsection-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* Collapsible technical details */
+.tech-details {
+  margin-top: 0.75rem;
+  border: 1px solid #2f3342;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tech-details summary {
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #98a0b6;
+  background: #0b0e17;
+  user-select: none;
+  list-style: none;
+}
+
+.tech-details summary::-webkit-details-marker { display: none; }
+
+.tech-details summary::before {
+  content: "▶ ";
+  font-size: 0.65rem;
+}
+
+details[open] .tech-details summary::before,
+.tech-details[open] summary::before {
+  content: "▼ ";
+}
+
+.tech-details summary:hover { color: #e8ebf3; }
+
+.tech-details code {
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid #2f3342;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.75rem;
+}

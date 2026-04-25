@@ -1,0 +1,394 @@
+/* ===== Futures Market ===== */
+
+.futures-root {
+  display: grid;
+  gap: 1rem;
+}
+
+/* ── Header ── */
+.futures-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.market-tabs {
+  display: flex;
+  gap: 0.25rem;
+  background: #0b0e17;
+  border-radius: 10px;
+  padding: 0.2rem;
+  flex-shrink: 0;
+}
+
+.market-tab {
+  border: none;
+  background: transparent;
+  color: #a4a9ba;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.88rem;
+  transition: all 0.15s;
+}
+
+.market-tab:hover:not(.market-tab-active) {
+  color: #e8ebf3;
+  background: #1a1e2e;
+}
+
+.market-tab-active {
+  background: #2f54eb;
+  color: #f5f7ff;
+}
+
+.market-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.mkt-price-block {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.mkt-price {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s;
+}
+
+.mkt-change {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.mkt-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.mkt-stat-label {
+  font-size: 0.72rem;
+  color: #98a0b6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mkt-stat-val {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e8ebf3;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Color utilities */
+.f-green { color: #52c41a; }
+.f-red   { color: #ff4d4f; }
+
+/* ── Body layout ── */
+.futures-body {
+  display: grid;
+  grid-template-columns: 240px 1fr 200px;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .futures-body {
+    grid-template-columns: 1fr 1fr;
+  }
+  .futures-ob { grid-column: 1 / -1; }
+}
+
+@media (max-width: 600px) {
+  .futures-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Order Book ── */
+.futures-ob {
+  padding: 0.75rem;
+}
+
+.futures-panel-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e8ebf3;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ob-col-headers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #98a0b6;
+  margin-bottom: 0.25rem;
+  padding: 0 0.4rem;
+}
+
+.ob-row {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ob-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  border-radius: 3px;
+}
+
+.ob-ask-bar { background: rgba(255, 77, 79, 0.12); }
+.ob-bid-bar { background: rgba(82, 196, 26, 0.12); }
+
+.ob-price {
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+
+.ob-sz {
+  color: #a4a9ba;
+  position: relative;
+  z-index: 1;
+}
+
+.ob-mid {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid #2f3342;
+  border-bottom: 1px solid #2f3342;
+  margin: 0.3rem 0;
+}
+
+/* ── Trade Panel ── */
+.futures-trade {
+  display: flex;
+  flex-direction: column;
+}
+
+.trade-side-row {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  border: 1px solid #2f3342;
+}
+
+.trade-side-btn {
+  flex: 1;
+  padding: 0.6rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.side-long-active {
+  background: rgba(82, 196, 26, 0.18);
+  color: #52c41a;
+}
+
+.side-short-active {
+  background: rgba(255, 77, 79, 0.18);
+  color: #ff4d4f;
+}
+
+.side-inactive {
+  background: #0b0e17;
+  color: #a4a9ba;
+}
+
+.side-inactive:hover {
+  color: #e8ebf3;
+  background: #1a1e2e;
+}
+
+.trade-field {
+  margin-bottom: 0.9rem;
+}
+
+.lv-row {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  margin-top: 0.3rem;
+}
+
+.lv-btn {
+  border: 1px solid #2f3342;
+  background: #0b0e17;
+  color: #a4a9ba;
+  border-radius: 6px;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.lv-btn:hover:not(.lv-active) {
+  border-color: #5b8def;
+  color: #e8ebf3;
+}
+
+.lv-active {
+  border-color: #2f54eb;
+  background: #2f54eb;
+  color: #f5f7ff;
+}
+
+/* Override the global .input max-width inside the trade panel */
+.futures-trade .input {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.inp-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #98a0b6;
+  margin-top: 0.25rem;
+}
+
+.order-summary {
+  background: #0b0e17;
+  border: 1px solid #2f3342;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+}
+
+.sum-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: #a4a9ba;
+}
+
+.sum-row span:last-child {
+  color: #e8ebf3;
+  font-weight: 600;
+}
+
+.trade-submit-btn {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: auto;
+}
+
+.btn-long {
+  background: #52c41a;
+  color: #fff;
+}
+
+.btn-short {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+.btn-long:hover:not(:disabled) { opacity: 0.85; }
+.btn-short:hover:not(:disabled) { opacity: 0.85; }
+.trade-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.futures-status {
+  margin: 0.5rem 0 0;
+  font-size: 0.82rem;
+  color: #a4a9ba;
+}
+
+.status-ok   { color: #52c41a; }
+.status-warn { color: #faad14; }
+
+/* ── Recent Trades ── */
+.futures-trades {
+  padding: 0.75rem;
+}
+
+.rt-headers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #98a0b6;
+  padding: 0 0.2rem;
+  margin-bottom: 0.3rem;
+}
+
+.rt-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.rt-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.22rem 0.2rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.rt-time {
+  color: #98a0b6;
+  font-size: 0.75rem;
+}
+
+/* ── Positions ── */
+.pos-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  background: #2f54eb;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  color: #fff;
+  font-weight: 700;
+}
+
+.pos-close-btn {
+  padding: 0.2rem 0.55rem !important;
+  font-size: 0.78rem !important;
+}
+
+.badge-long {
+  background: rgba(82, 196, 26, 0.15);
+  color: #52c41a;
+}
+
+.badge-short {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff4d4f;
+}

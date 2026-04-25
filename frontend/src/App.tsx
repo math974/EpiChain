@@ -4,6 +4,7 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { useMemo, useState, lazy, Suspense } from "react";
 
 const IndexerFeed = lazy(() => import("./IndexerFeed"));
+const FuturesMarket = lazy(() => import("./FuturesMarket"));
 import {
   useAccount,
   useBalance,
@@ -82,7 +83,7 @@ async function bundlerRpc<T>(
   return data.result as T;
 }
 
-type Tab = "account" | "indexer";
+type Tab = "account" | "indexer" | "futures";
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("account");
@@ -586,6 +587,12 @@ function App() {
           >
             Indexer Feed
           </button>
+          <button
+            className={`tab-btn ${activeTab === "futures" ? "active" : ""}`}
+            onClick={() => setActiveTab("futures")}
+          >
+            Futures Markets
+          </button>
         </nav>
         <ConnectButton />
       </header>
@@ -594,299 +601,334 @@ function App() {
           <Suspense fallback={<p>Loading indexer...</p>}>
             <IndexerFeed />
           </Suspense>
+        ) : activeTab === "futures" ? (
+          <Suspense fallback={<p>Loading futures markets...</p>}>
+            <FuturesMarket />
+          </Suspense>
         ) : (
         <>
-        <section className="card">
-          <h2>Smart account preview</h2>
-          <p className="muted">
-            This section is a base for the owner/session-key flow. It already
-            computes the deterministic smart-account address from the factory.
-          </p>
-          <label htmlFor="saltInput">Salt</label>
-          <input
-            id="saltInput"
-            className="input"
-            value={saltInput}
-            onChange={(event) => setSaltInput(event.target.value)}
-          />
-          <label htmlFor="ownerAddressInput">Smart account owner (fixed)</label>
-          <input
-            id="ownerAddressInput"
-            className="input"
-            placeholder={address ?? "0x..."}
-            value={ownerAddressInput}
-            onChange={(event) => setOwnerAddressInput(event.target.value)}
-          />
-          <div className="actions">
-            <button
-              className="btn btn-secondary"
-              disabled={!address}
-              onClick={() => setOwnerAddressInput(address ?? "")}
-            >
-              Use connected wallet as owner
-            </button>
-          </div>
+          {/* ── Card 1: Smart Account Setup ── */}
+          <section className="card">
+            <div className="card-title-row">
+              <h2>Smart Account Setup</h2>
+              {canUseSmartAccount && <span className="badge-status badge-ok">Configured</span>}
+            </div>
+            <p className="muted">
+              Compute the deterministic address from your owner + salt, then deploy via the
+              factory using CREATE2.
+            </p>
 
-          <div className="grid">
-            <div>
-              <span className="label">Connected wallet (signer)</span>
-              <code>{address ?? "Connect wallet"}</code>
+            <div className="form-two-col">
+              <div>
+                <label className="label" htmlFor="ownerAddressInput">Owner address</label>
+                <div className="input-with-btn">
+                  <input
+                    id="ownerAddressInput"
+                    className="input input-full"
+                    placeholder={address ?? "0x…"}
+                    value={ownerAddressInput}
+                    onChange={(event) => setOwnerAddressInput(event.target.value)}
+                  />
+                  <button
+                    className="btn btn-secondary"
+                    disabled={!address}
+                    onClick={() => setOwnerAddressInput(address ?? "")}
+                  >
+                    Use my wallet
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="label" htmlFor="saltInput">Salt</label>
+                <input
+                  id="saltInput"
+                  className="input"
+                  value={saltInput}
+                  onChange={(event) => setSaltInput(event.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <span className="label">Smart account owner used for prediction</span>
-              <code>{ownerAddressForSmartAccount ?? "Set owner address or connect wallet"}</code>
-            </div>
-            <div>
-              <span className="label">Factory</span>
-              <code>{factoryAddress ?? "Set VITE_FACTORY_ADDRESS"}</code>
-            </div>
-          </div>
 
-          <div className="result">
-            <span className="label">Predicted smart account</span>
-            <code>
-              {predictedAddressQuery.data ??
-                (canReadFactoryForOwner ? "Loading..." : "Configure factory + owner")}
-            </code>
-          </div>
-          <div className="actions">
-            <button
-              className="btn"
-              disabled={!canReadFactoryForOwner || isOwnerTxPending}
-              onClick={() => void submitCreateAccount()}
-            >
-              Create account (Factory)
-            </button>
-          </div>
-          {counterValueQuery.data !== undefined && (
-            <div className="result">
-              <span className="label">Counter value for smart account</span>
-              <code>{counterValueQuery.data.toString()}</code>
+            <div className="predicted-block">
+              <span className="label">Predicted smart account (CREATE2)</span>
+              <div className="predicted-row">
+                <code className="address-code">
+                  {predictedAddressQuery.data ??
+                    (canReadFactoryForOwner ? "Loading…" : "Configure factory + owner above")}
+                </code>
+                <button
+                  className="btn"
+                  disabled={!canReadFactoryForOwner || isOwnerTxPending}
+                  onClick={() => void submitCreateAccount()}
+                >
+                  {isOwnerTxPending ? "Deploying…" : "Deploy Account"}
+                </button>
+              </div>
             </div>
-          )}
-          <div className="result">
-            <span className="label">Smart account balance (ETH)</span>
-            <code>
-              {smartAccountBalanceQuery.data
-                ? `${formatEther(smartAccountBalanceQuery.data.value)} ETH`
-                : canUseSmartAccount
-                  ? "Loading..."
-                  : "Unavailable"}
-            </code>
-          </div>
-          {lastTxHash && (
-            <div className="result">
-              <span className="label">Last tx ({lastAction})</span>
-              <code>{lastTxHash}</code>
-            </div>
-          )}
-          {txReceiptQuery.isSuccess && (
-            <div className="result">
-              <span className="label">Last tx status</span>
-              <code>
-                {txReceiptQuery.data.status === "success"
-                  ? "Success"
-                  : txReceiptQuery.data.status}
-              </code>
-            </div>
-          )}
-        </section>
 
-        <section className="card">
-          <h2>UserOp + bundler (owner flow)</h2>
-          <p className="muted">
-            This sends `increment()` through EntryPoint using
-            `eth_sendUserOperation`.
-          </p>
-          <div className="result">
-            <span className="label">Bundler URL</span>
-            <code>{bundlerUrl ?? "Set VITE_BUNDLER_URL"}</code>
-          </div>
-          <div className="result">
-            <span className="label">Counter</span>
-            <code>{counterAddress ?? "Set VITE_COUNTER_ADDRESS"}</code>
-          </div>
-          <div className="result">
-            <span className="label">execute(...) callData</span>
-            <code>{demoExecuteCallData ?? "Unavailable (missing counter address)"}</code>
-          </div>
-          <div className="result">
-            <span className="label">Local demo userOp hash</span>
-            <code>{demoUserOpHash ?? "Unavailable"}</code>
-          </div>
-          <div className="actions">
-            <button
-              className="btn"
-              disabled={!canUseOwnerBundler || isAnyBundlerPending}
-              onClick={() => void submitIncrementViaBundler("owner")}
-            >
-              {isAnyBundlerPending
-                ? "Sending UserOperation..."
-                : "Increment via bundler (owner)"}
-            </button>
-          </div>
-          {ownerUserOpHash && (
-            <div className="result">
-              <span className="label">Bundler userOpHash</span>
-              <code>{ownerUserOpHash}</code>
+            <div className="account-stats">
+              <div className="account-stat">
+                <span className="account-stat-label">Counter</span>
+                <span className="account-stat-value">
+                  {counterValueQuery.data !== undefined
+                    ? counterValueQuery.data.toString()
+                    : "—"}
+                </span>
+              </div>
+              <div className="account-stat">
+                <span className="account-stat-label">Balance</span>
+                <span className="account-stat-value">
+                  {smartAccountBalanceQuery.data
+                    ? `${formatEther(smartAccountBalanceQuery.data.value)} ETH`
+                    : canUseSmartAccount
+                    ? "Loading…"
+                    : "—"}
+                </span>
+              </div>
+              <div className="account-stat">
+                <span className="account-stat-label">Factory</span>
+                <span className="account-stat-value account-stat-mono">
+                  {factoryAddress
+                    ? `${factoryAddress.slice(0, 6)}…${factoryAddress.slice(-4)}`
+                    : "Not set"}
+                </span>
+              </div>
             </div>
-          )}
-          {ownerBundlerError && (
-            <div className="result">
-              <span className="label">Bundler error</span>
-              <code>{ownerBundlerError}</code>
-            </div>
-          )}
-          {ownerBundlerStatus && (
-            <div className="result">
-              <span className="label">Bundler status</span>
-              <code>{ownerBundlerStatus}</code>
-            </div>
-          )}
-          {ownerBundlerPayload && (
-            <div className="result">
-              <span className="label">Sent userOp payload</span>
-              <code>{ownerBundlerPayload}</code>
-            </div>
-          )}
-        </section>
 
-        <section className="card">
-          <h2>Session key management (owner tx)</h2>
-          <p className="muted">
-            Generate a session keypair in this app (recommended for the assignment): the
-            address is registered on the smart account by the owner via{" "}
-            <code>addSessionKey</code> with an expiry timestamp. After expiry, the
-            session key is rejected until you add a new key. Session scope is fixed to{" "}
-            <code>increment()</code>. Signing uses the locally generated private key in
-            memory (demo only — not persisted).
-          </p>
-          <div className="actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={!canUseSmartAccount}
-              onClick={() => {
-                const pk = generatePrivateKey();
-                const acc = privateKeyToAccount(pk);
-                setSessionKeyPrivateKey(pk);
-                setSessionKeyInput(acc.address);
-              }}
-            >
-              Generate session key (fills address)
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={sessionKeyPrivateKey === null}
-              onClick={() => setSessionKeyPrivateKey(null)}
-            >
-              Clear in-memory signing key
-            </button>
-          </div>
-          <label htmlFor="sessionKey">Session key address</label>
-          <input
-            id="sessionKey"
-            className="input"
-            placeholder="0x... (use Generate or paste)"
-            value={sessionKeyInput}
-            onChange={(event) => setSessionKeyInput(event.target.value)}
-          />
-          <label htmlFor="sessionExpiry">Session expiry (unix seconds)</label>
-          <input
-            id="sessionExpiry"
-            className="input"
-            value={sessionExpiryInput}
-            onChange={(event) => setSessionExpiryInput(event.target.value)}
-          />
-          <div className="actions">
-            <button
-              className="btn"
-              disabled={!canUseSmartAccount || !sessionKeyIsAddress || isOwnerTxPending}
-              onClick={() => void submitAddSessionKey()}
-            >
-              Add session key
-            </button>
-            <button
-              className="btn btn-secondary"
-              disabled={!canUseSmartAccount || !sessionKeyIsAddress || isOwnerTxPending}
-              onClick={() => void submitRevokeSessionKey()}
-            >
-              Revoke session key
-            </button>
-            <button
-              className="btn"
-              disabled={!canUseSessionBundler || isAnyBundlerPending}
-              onClick={() => void submitIncrementViaBundler("session")}
-            >
-              {isAnyBundlerPending
-                ? "Sending UserOperation..."
-                : "Increment via bundler (session key)"}
-            </button>
-          </div>
-          <div className="result">
-            <span className="label">Selector allowed (`increment()`)</span>
-            <code>
-              {sessionAllowedQuery.data === undefined
-                ? "Provide session key + smart account"
-                : String(sessionAllowedQuery.data)}
-            </code>
-          </div>
-          <div className="result">
-            <span className="label">On-chain session config</span>
-            <code>
-              {!sessionKeyIsAddress
-                ? "Provide session key address"
-                : sessionConfigQuery.data === undefined
-                  ? "Loading…"
-                  : (() => {
-                      const [expiry, active] = sessionConfigQuery.data;
-                      const expSec = Number(expiry);
-                      const iso =
-                        expSec > 0
-                          ? new Date(expSec * 1000).toISOString()
-                          : "—";
-                      return `active=${String(active)} expiry_unix=${String(expSec)} (${iso})`;
-                    })()}
-            </code>
-          </div>
-          <div className="result">
-            <span className="label">Session signing</span>
-            <code>
-              {!sessionKeyIsAddress
-                ? "Provide a valid session key address"
-                : sessionKeyPrivateKey !== null
-                  ? "Using in-app generated key (no MetaMask for session signatures)"
-                  : connectedAddressMatchesSessionKey
-                    ? "Using connected wallet with eth_sign (fallback)"
-                    : "Generate a session key above, or connect a wallet whose address matches the session key"}
-            </code>
-          </div>
-          {sessionUserOpHash && (
-            <div className="result">
-              <span className="label">Session userOpHash</span>
-              <code>{sessionUserOpHash}</code>
+            {lastTxHash && (
+              <div className="tx-result">
+                <span className="label">Last transaction — {lastAction}</span>
+                <div className="tx-row">
+                  <code>{lastTxHash}</code>
+                  {txReceiptQuery.isSuccess && (
+                    <span
+                      className={`badge ${
+                        txReceiptQuery.data.status === "success"
+                          ? "badge-success"
+                          : "badge-fail"
+                      }`}
+                    >
+                      {txReceiptQuery.data.status === "success" ? "Success" : "Failed"}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* ── Card 2: Owner Flow ── */}
+          <section className="card">
+            <div className="card-title-row">
+              <h2>Owner Flow — Bundler</h2>
+              {!canUseOwnerBundler && (
+                <span className="badge-status badge-warn">
+                  {!canUseSmartAccount ? "Deploy account first" : "Connect wallet"}
+                </span>
+              )}
             </div>
-          )}
-          {sessionBundlerError && (
-            <div className="result">
-              <span className="label">Session bundler error</span>
-              <code>{sessionBundlerError}</code>
+            <p className="muted">
+              Signs and submits an <code>increment()</code> UserOperation through the bundler
+              using your EOA as the owner. EntryPoint validates the ECDSA signature on-chain.
+            </p>
+
+            <div className="actions">
+              <button
+                className="btn"
+                disabled={!canUseOwnerBundler || isAnyBundlerPending}
+                onClick={() => void submitIncrementViaBundler("owner")}
+              >
+                {isOwnerBundlerPending
+                  ? "Sending UserOperation…"
+                  : "Increment via bundler (owner)"}
+              </button>
             </div>
-          )}
-          {sessionBundlerStatus && (
-            <div className="result">
-              <span className="label">Session bundler status</span>
-              <code>{sessionBundlerStatus}</code>
+
+            {ownerBundlerStatus && (
+              <div className="bundler-status-row">
+                <span className="dot dot-green" />
+                <span>{ownerBundlerStatus}</span>
+              </div>
+            )}
+            {ownerBundlerError && (
+              <div className="bundler-error">{ownerBundlerError}</div>
+            )}
+            {ownerUserOpHash && (
+              <div className="result">
+                <span className="label">UserOp Hash</span>
+                <code>{ownerUserOpHash}</code>
+              </div>
+            )}
+            {ownerBundlerPayload && (
+              <details className="tech-details">
+                <summary>Show raw UserOp payload</summary>
+                <code>{ownerBundlerPayload}</code>
+              </details>
+            )}
+          </section>
+
+          {/* ── Card 3: Session Keys ── */}
+          <section className="card">
+            <div className="card-title-row">
+              <h2>Session Keys</h2>
+              {sessionKeyPrivateKey !== null && (
+                <span className="badge-status badge-ok">Key loaded in memory</span>
+              )}
             </div>
-          )}
-          {sessionBundlerPayload && (
-            <div className="result">
-              <span className="label">Session userOp payload</span>
-              <code>{sessionBundlerPayload}</code>
+            <p className="muted">
+              A session key is a temporary, scoped address that can call{" "}
+              <code>increment()</code> without the owner's signature — until its expiry.
+              The owner registers it on-chain; the key signs UserOps in-browser.
+            </p>
+
+            <div className="actions">
+              <button
+                type="button"
+                className="btn"
+                disabled={!canUseSmartAccount}
+                onClick={() => {
+                  const pk = generatePrivateKey();
+                  const acc = privateKeyToAccount(pk);
+                  setSessionKeyPrivateKey(pk);
+                  setSessionKeyInput(acc.address);
+                }}
+              >
+                Generate session key
+              </button>
+              {sessionKeyPrivateKey !== null && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setSessionKeyPrivateKey(null)}
+                >
+                  Clear in-memory key
+                </button>
+              )}
             </div>
-          )}
-        </section>
+
+            <div className="form-two-col">
+              <div>
+                <label className="label" htmlFor="sessionKey">Session key address</label>
+                <input
+                  id="sessionKey"
+                  className="input input-full"
+                  placeholder="0x… (generate above or paste)"
+                  value={sessionKeyInput}
+                  onChange={(event) => setSessionKeyInput(event.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="sessionExpiry">Expiry (unix seconds)</label>
+                <input
+                  id="sessionExpiry"
+                  className="input"
+                  value={sessionExpiryInput}
+                  onChange={(event) => setSessionExpiryInput(event.target.value)}
+                />
+                {sessionExpiry > 0 && (
+                  <span className="input-hint">
+                    {new Date(sessionExpiry * 1000).toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {sessionKeyIsAddress && canUseSmartAccount && (
+              <div className="session-status-grid">
+                <div className="session-status-item">
+                  <span className="label">Selector scope</span>
+                  <span className={sessionAllowedQuery.data ? "text-ok" : "text-muted"}>
+                    {sessionAllowedQuery.data === undefined
+                      ? "Loading…"
+                      : sessionAllowedQuery.data
+                      ? "✓ increment() allowed"
+                      : "✗ Not allowed"}
+                  </span>
+                </div>
+                <div className="session-status-item">
+                  <span className="label">On-chain config</span>
+                  <span>
+                    {sessionConfigQuery.data === undefined
+                      ? "Loading…"
+                      : (() => {
+                          const [expiry, active] = sessionConfigQuery.data;
+                          const expSec = Number(expiry);
+                          if (expSec === 0) return "Not registered";
+                          return `${active ? "Active" : "Inactive"} · expires ${new Date(expSec * 1000).toLocaleString()}`;
+                        })()}
+                  </span>
+                </div>
+                <div className="session-status-item">
+                  <span className="label">Signing method</span>
+                  <span>
+                    {sessionKeyPrivateKey !== null
+                      ? "In-memory key (no MetaMask)"
+                      : connectedAddressMatchesSessionKey
+                      ? "Connected wallet (eth_sign)"
+                      : "Generate a key or connect matching wallet"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="actions">
+              <button
+                className="btn"
+                disabled={!canUseSmartAccount || !sessionKeyIsAddress || isOwnerTxPending}
+                onClick={() => void submitAddSessionKey()}
+              >
+                Add session key
+              </button>
+              <button
+                className="btn btn-secondary"
+                disabled={!canUseSmartAccount || !sessionKeyIsAddress || isOwnerTxPending}
+                onClick={() => void submitRevokeSessionKey()}
+              >
+                Revoke
+              </button>
+            </div>
+
+            <div className="card-divider" />
+
+            <h3 className="subsection-title">Submit as Session Key</h3>
+            <p className="muted">
+              Calls <code>increment()</code> via the session key — no owner signature, scope
+              enforced on-chain by <code>validateUserOp</code>.
+            </p>
+
+            <div className="actions">
+              <button
+                className="btn"
+                disabled={!canUseSessionBundler || isAnyBundlerPending}
+                onClick={() => void submitIncrementViaBundler("session")}
+              >
+                {isSessionBundlerPending
+                  ? "Sending UserOperation…"
+                  : "Increment via bundler (session key)"}
+              </button>
+            </div>
+
+            {sessionBundlerStatus && (
+              <div className="bundler-status-row">
+                <span className="dot dot-green" />
+                <span>{sessionBundlerStatus}</span>
+              </div>
+            )}
+            {sessionBundlerError && (
+              <div className="bundler-error">{sessionBundlerError}</div>
+            )}
+            {sessionUserOpHash && (
+              <div className="result">
+                <span className="label">Session UserOp Hash</span>
+                <code>{sessionUserOpHash}</code>
+              </div>
+            )}
+            {sessionBundlerPayload && (
+              <details className="tech-details">
+                <summary>Show raw UserOp payload</summary>
+                <code>{sessionBundlerPayload}</code>
+              </details>
+            )}
+          </section>
         </>
         )}
       </main>
